@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  # MongoDB
+  mongodb:
+    image: mongo:7
+    container_name: projectflow-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: projectflow
+    networks:
+      - projectflow-network
+
+  # Backend API
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: projectflow-server
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      MONGODB_URI: mongodb://mongodb:27017/projectflow
+      JWT_SECRET: ${JWT_SECRET:-change_this_in_production}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change_this_too}
+      CLIENT_URL: http://localhost
+      ML_SERVICE_URL: http://ml_service:8000
+    depends_on:
+      - mongodb
+      - ml_service
+    networks:
+      - projectflow-network
+
+  # ML Service
+  ml_service:
+    build:
+      context: ./ml_service
+      dockerfile: Dockerfile
+    container_name: projectflow-ml
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    networks:
+      - projectflow-network
+
+  # Frontend
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: projectflow-client
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - server
+    networks:
+      - projectflow-network
+
+volumes:
+  mongo_data:
+
+networks:
+  projectflow-network:
+    driver: bridge

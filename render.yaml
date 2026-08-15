@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: projectflow-server
+    env: node
+    buildCommand: cd server && npm install && npm run build
+    startCommand: cd server && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        value: mongodb+srv://client_31:<db_password>@cluster0.wrklttl.mongodb.net/projectflow
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ML_SERVICE_URL
+        value: https://projectflow-ml.onrender.com
+
+  - type: web
+    name: projectflow-ml
+    env: python
+    buildCommand: cd ml_service && pip install -r requirements.txt
+    startCommand: cd ml_service && uvicorn main:app --host 0.0.0.0 --port $PORT
